@@ -1,24 +1,49 @@
-import logo from './logo.svg';
-import './App.css';
+import React, { useEffect } from 'react';
+import { Route, Routes, Navigate } from 'react-router-dom';
+import { useSelector, useDispatch } from 'react-redux';
+import { loginUser, logout } from './redux/slices/authSlice';
+import { fetchWorkspaces } from './redux/slices/workspaceSlice';
 
-function App() {
+function App({ routes }) {
+  const dispatch = useDispatch();
+  const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
+  const userData = useSelector((state) => state.auth.userData);
+
+  const handleLoginSuccess = (data) => {
+    dispatch(loginUser(data));
+  };
+
+  const handleLogout = () => {
+    dispatch(logout());
+    dispatch({ type: 'workspace/clearWorkspaceData' });
+  };
+
+  useEffect(() => {
+    if (isAuthenticated && userData?.userId) {
+      dispatch(fetchWorkspaces());
+    }
+  }, [isAuthenticated, userData, dispatch]);
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <Routes>
+      {routes.map((route, index) => (
+        <Route
+          key={index}
+          path={route.path}
+          element={
+            route.public ? (
+              <route.component onLogin={handleLoginSuccess} />
+            ) : (
+              isAuthenticated ? (
+                <route.component />
+              ) : (
+                <Navigate to="/login" replace />
+              )
+            )
+          }
+        />
+      ))}
+    </Routes>
   );
 }
 
